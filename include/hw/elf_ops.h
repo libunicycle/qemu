@@ -321,11 +321,13 @@ static int glue(load_elf, SZ)(const char *name, int fd,
                               uint32_t *pflags, int elf_machine,
                               int clear_lsb, int data_swab,
                               AddressSpace *as, bool load_rom,
-                              symbol_fn_t sym_cb)
+                              symbol_fn_t sym_cb, struct elf_segments_list *segments,
+                              struct elf_sections_list *sections)
 {
     struct elfhdr ehdr;
     struct elf_phdr *phdr = NULL, *ph;
-    int size, i, total_size;
+    struct elf_shdr *shdr = NULL;
+    int ph_size, sh_size, i, total_size;
     elf_word mem_size, file_size, data_offset;
     uint64_t addr, low = (uint64_t)-1, high = 0;
     GMappedFile *mapped_file = NULL;
@@ -400,20 +402,29 @@ static int glue(load_elf, SZ)(const char *name, int fd,
 
     glue(load_symbols, SZ)(&ehdr, fd, must_swab, clear_lsb, sym_cb);
 
-    size = ehdr.e_phnum * sizeof(phdr[0]);
+    ph_size = ehdr.e_phnum * sizeof(phdr[0]);
     if (lseek(fd, ehdr.e_phoff, SEEK_SET) != ehdr.e_phoff) {
         goto fail;
     }
-    phdr = g_malloc0(size);
+    phdr = g_malloc0(ph_size);
     if (!phdr)
         goto fail;
-    if (read(fd, phdr, size) != size)
+    if (read(fd, phdr, ph_size) != ph_size)
         goto fail;
     if (must_swab) {
         for(i = 0; i < ehdr.e_phnum; i++) {
             ph = &phdr[i];
             glue(bswap_phdr, SZ)(ph);
         }
+    }
+
+    if (ehdr.e_phnum > MAX_ELF_SEGMENTS) {
+        fprintf(stderr, "Number of ELF segments %d is more than supported by uniboot %d", ehdr.e_phnum, MAX_ELF_SEGMENTS);
+        goto fail;
+    }
+    if (ehdr.e_shnum > MAX_ELF_SECTIONS) {
+        fprintf(stderr, "Number of ELF sections %d is more than supported by uniboot %d", ehdr.e_shnum, MAX_ELF_SECTIONS);
+        goto fail;
     }
 
     /*
@@ -429,6 +440,20 @@ static int glue(load_elf, SZ)(const char *name, int fd,
     total_size = 0;
     for(i = 0; i < ehdr.e_phnum; i++) {
         ph = &phdr[i];
+
+        if (segments) {
+            int i = segments->num++;
+            struct elf_segment *seg = &segments->segments[i];
+
+            seg->type = ph->p_type;
+            seg->flags = ph->p_flags;
+            seg->offset = ph->p_offset;
+            seg->vaddr = ph->p_vaddr;
+            seg->paddr = ph->p_paddr;
+            seg->filesz = ph->p_filesz;
+            seg->memsz = ph->p_memsz;
+            seg->align = ph->p_align;
+        }
         if (ph->p_type == PT_LOAD) {
             mem_size = ph->p_memsz; /* Size of the ROM */
             file_size = ph->p_filesz; /* Size of the allocated data */
@@ -605,6 +630,36 @@ static int glue(load_elf, SZ)(const char *name, int fd,
         }
     }
 
+    if (sections) {
+        sh_size = ehdr.e_shnum * sizeof(shdr[0]);
+        if (lseek(fd, ehdr.e_shoff, SEEK_SET) != ehdr.e_shoff) {
+            goto fail;
+        }
+        shdr = g_malloc0(sh_size);
+        if (!shdr)
+            goto fail;
+        if (read(fd, shdr, sh_size) != sh_size)
+            goto fail;
+        if (must_swab) {
+            for(i = 0; i < ehdr.e_shnum; i++) {
+                glue(bswap_shdr, SZ)(&shdr[i]);
+            }
+        }
+
+        sections->num = ehdr.e_shnum;
+        struct elf_section *sec = sections->sections;
+
+        for(i = 0; i < ehdr.e_shnum; i++) {
+            sec[i].name = shdr[i].sh_name;
+            sec[i].type = shdr[i].sh_type;
+            sec[i].flags = shdr[i].sh_flags;
+            sec[i].addr = shdr[i].sh_addr;
+            sec[i].size = shdr[i].sh_size;
+            sec[i].addralign = shdr[i].sh_addralign;
+            sec[i].entsize = shdr[i].sh_entsize;
+        }
+    }
+
     if (lowaddr)
         *lowaddr = (uint64_t)(elf_sword)low;
     if (highaddr)
@@ -615,5 +670,6 @@ static int glue(load_elf, SZ)(const char *name, int fd,
         g_mapped_file_unref(mapped_file);
     }
     g_free(phdr);
+    g_free(shdr);
     return ret;
 }

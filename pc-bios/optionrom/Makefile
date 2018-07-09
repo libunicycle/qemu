@@ -43,7 +43,7 @@ LD_I386_EMULATION ?= elf_i386
 override LDFLAGS = -m $(LD_I386_EMULATION) -T $(SRC_DIR)/flat.lds
 override LDFLAGS += $(LDFLAGS_NOPIE)
 
-all: multiboot.bin linuxboot.bin linuxboot_dma.bin kvmvapic.bin pvh.bin
+all: uniboot.bin multiboot.bin linuxboot.bin linuxboot_dma.bin kvmvapic.bin pvh.bin
 
 pvh.img: pvh.o pvh_main.o
 

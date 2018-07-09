@@ -3379,13 +3379,20 @@ DEFHEADING()
 
 #endif
 
-DEFHEADING(Linux/Multiboot boot specific:)
+DEFHEADING(Linux/Multiboot/Uniboot boot specific:)
 SRST
 When using these options, you can use a given Linux or Multiboot kernel
 without installing it in the disk image. It can be useful for easier
 testing of various kernels.
 
 
+ERST
+
+DEF("uniboot", 0, QEMU_OPTION_uniboot, \
+    "-uniboot     the kernel is uniboot application\n", QEMU_ARCH_ALL)
+SRST
+``-uniboot``
+    Load kernel with uniboot protocol.
 ERST
 
 DEF("kernel", HAS_ARG, QEMU_OPTION_kernel, \

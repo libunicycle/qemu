@@ -37,6 +37,9 @@
 #define FW_CFG_FILE_FIRST	0x20
 #define FW_CFG_FILE_SLOTS_MIN	0x10
 
+/* Uniboot keys that start with 0x8020 */
+#define FW_CFG_SETUP_ENTRY 0x8020
+
 #define FW_CFG_WRITE_CHANNEL	0x4000
 #define FW_CFG_ARCH_LOCAL	0x8000
 #define FW_CFG_ENTRY_MASK	(~(FW_CFG_WRITE_CHANNEL | FW_CFG_ARCH_LOCAL))

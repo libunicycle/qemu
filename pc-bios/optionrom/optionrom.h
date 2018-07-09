@@ -37,6 +37,9 @@
 #define BIOS_CFG_IOPORT_CFG	0x510
 #define BIOS_CFG_IOPORT_DATA	0x511
 
+/* Uniboot keys that start with 0x8020 */
+#define FW_CFG_SETUP_ENTRY 0x8020
+
 /* Break the translation block flow so -d cpu shows us values */
 #define DEBUG_HERE \
 	jmp		1f;				\

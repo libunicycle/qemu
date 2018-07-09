@@ -3106,6 +3106,10 @@ void qemu_init(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 break;
+            case QEMU_OPTION_uniboot:
+                qemu_opts_set(qemu_find_opts("machine"), 0, "uniboot", "on",
+                              &error_abort);
+                break;
             case QEMU_OPTION_kernel:
                 qemu_opts_set(qemu_find_opts("machine"), NULL, "kernel", optarg,
                               &error_abort);

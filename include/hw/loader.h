@@ -128,6 +128,39 @@ const char *load_elf_strerror(int error);
 typedef void (*symbol_fn_t)(const char *st_name, int st_info,
                             uint64_t st_value, uint64_t st_size);
 
+struct elf_segment {
+  uint32_t type;   /* Segment type */
+  uint32_t flags;  /* Segment flags */
+  uint64_t offset; /* Segment file offset */
+  uint64_t vaddr;  /* Segment virtual address */
+  uint64_t paddr;  /* Segment physical address */
+  uint64_t filesz; /* Segment size in file */
+  uint64_t memsz;  /* Segment size in memory */
+  uint64_t align;  /* Segment alignment */
+};
+
+#define MAX_ELF_SEGMENTS 40
+struct elf_segments_list {
+  uint32_t num;
+  struct elf_segment segments[MAX_ELF_SEGMENTS];
+};
+
+struct elf_section {
+  uint32_t name;      /* Section name (string tbl index) */
+  uint32_t type;      /* Section type UNIBOOT_SECTTYPE_* */
+  uint64_t flags;     /* Section flags UNIBOOT_SECTFLAG_* */
+  uint64_t addr;      /* Section virtual addr at execution */
+  uint64_t size;      /* Section size in bytes */
+  uint64_t addralign; /* Section alignment */
+  uint64_t entsize;   /* Entry size if section holds table */
+};
+
+#define MAX_ELF_SECTIONS 60
+struct elf_sections_list {
+  uint32_t num;
+  struct elf_section sections[MAX_ELF_SECTIONS];
+};
+
 int load_elf_ram_sym(const char *filename,
                      uint64_t (*elf_note_fn)(void *, void *, bool),
                      uint64_t (*translate_fn)(void *, uint64_t),
@@ -135,7 +168,9 @@ int load_elf_ram_sym(const char *filename,
                      uint64_t *lowaddr, uint64_t *highaddr, uint32_t *pflags,
                      int big_endian, int elf_machine,
                      int clear_lsb, int data_swab,
-                     AddressSpace *as, bool load_rom, symbol_fn_t sym_cb);
+                     AddressSpace *as, bool load_rom, symbol_fn_t sym_cb,
+		     struct elf_segments_list *segments,
+                     struct elf_sections_list *sections);
 
 /** load_elf_ram:
  * Same as load_elf_ram_sym(), but doesn't allow the caller to specify a
